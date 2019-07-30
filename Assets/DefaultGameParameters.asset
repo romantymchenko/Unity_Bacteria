@@ -23,4 +23,9 @@ MonoBehaviour:
   maxHPValue: 50
   growingColor: {r: 0.50445, g: 0.9811321, b: 0.57487756, a: 1}
   growingSpeed: 10
+  friendFill: {r: 1, g: 1, b: 1, a: 1}
+  holeFill: {r: 0, g: 0, b: 0, a: 0.39215687}
+  enemy1Fill: {r: 1, g: 0.18396229, b: 0.18396229, a: 1}
+  enemy2Fill: {r: 0, g: 0.21964121, b: 1, a: 1}
+  enemy3Fill: {r: 1, g: 0, b: 0.78961563, a: 1}
   levels: []

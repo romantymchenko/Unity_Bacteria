@@ -8,7 +8,7 @@ public class BactaController : MonoBehaviour
     private GameParameters gameParameters;
 
     [SerializeField]
-    private BactaType playerType = BactaType.FRIEND;
+    private ObjectType playerType = ObjectType.FRIEND;
 
     [SerializeField]
     private Transform circleTransform;
@@ -16,6 +16,9 @@ public class BactaController : MonoBehaviour
 
     [SerializeField]
     private Transform circleOutlinerTransform;
+
+    [SerializeField]
+    private Transform circleOutlinerMaskTransform;
 
     [SerializeField]
     private TextMesh labelText;
@@ -36,7 +39,7 @@ public class BactaController : MonoBehaviour
 
     public void StartTouchingPhase()
     {
-        if (playerType != BactaType.FRIEND) return;
+        if (playerType != ObjectType.FRIEND) return;
 
         StartGrow();
     }
@@ -50,12 +53,52 @@ public class BactaController : MonoBehaviour
     {
         circleTransformRenderer = circleTransform.GetComponent<SpriteRenderer>();
         rigidbody2D = GetComponent<Rigidbody2D>();
+
+        ChangeSkin(playerType);
+
     }
 
     private void Start()
     {
-        direction = Random.insideUnitCircle;
-        UpdateView();
+        direction = Random.insideUnitCircle.normalized;
+        UpdateSize();
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        var otherType = collision.transform.parent.GetComponent<ObjectTypeStorage>().objectType;
+        if (otherType == ObjectType.WALL)
+        {
+            direction = Vector2.Reflect(direction, collision.transform.right);
+            return;
+        }
+
+        //get reflection using closest point
+        direction = Vector2.Reflect(direction, (new Vector2(transform.position.x, transform.position.y) - collision.ClosestPoint(transform.position)).normalized);
+
+        if (playerType == otherType) return;
+
+        if (playerType == ObjectType.FRIEND)
+        {
+            switch(otherType)
+            {
+                case ObjectType.HOLE:
+                    if (isGrowing)
+                    {
+                        //friend(curr)->hole
+                        StopGrowing();
+                        ChangeSkin(ObjectType.HOLE);
+                    }
+                    break;
+                case ObjectType.ENEMY_SIMPLE:
+                case ObjectType.ENEMY_GROW:
+
+                    break;
+                case ObjectType.ENEMY_DOUBLE:
+
+                    break;
+            }
+        }
     }
 
     private void Update()
@@ -66,7 +109,7 @@ public class BactaController : MonoBehaviour
         {
             healthPoints += Time.deltaTime * gameParameters.growingSpeed;
             healthPoints = Mathf.Min(healthPoints, gameParameters.maxHPValue);
-            UpdateView();
+            UpdateSize();
         }
     }
 
@@ -94,23 +137,40 @@ public class BactaController : MonoBehaviour
         circleTransformRenderer.color = Color.white;
     }
 
-    private void UpdateView()
+    private void UpdateSize()
     {
         var hpCoeff = (healthPoints - gameParameters.minHPValue) / (gameParameters.maxHPValue - gameParameters.minHPValue);
         var currDiameter = gameParameters.minHPDiameter + (gameParameters.maxHPDiameter - gameParameters.minHPDiameter) * hpCoeff;
 
         circleTransform.localScale = Vector3.one * currDiameter;
+        circleOutlinerMaskTransform.localScale = circleTransform.localScale;
         circleOutlinerTransform.localScale = circleTransform.localScale + Vector3.one * 0.1f;
 
         labelText.text = (int)healthPoints + "";
     }
-}
 
-public enum BactaType
-{
-    FRIEND,
-    HOLE,
-    ENEMY_SIMPLE,
-    ENEMY_GROW,
-    ENEMY_DOUBLE
+    private void ChangeSkin(ObjectType objectType)
+    {
+        playerType = objectType;
+        GetComponent<ObjectTypeStorage>().objectType = objectType;
+
+        switch(objectType)
+        {
+            case ObjectType.FRIEND:
+                circleTransformRenderer.color = gameParameters.friendFill;
+                break;
+            case ObjectType.HOLE:
+                circleTransformRenderer.color = gameParameters.holeFill;
+                break;
+            case ObjectType.ENEMY_SIMPLE:
+                circleTransformRenderer.color = gameParameters.enemy1Fill;
+                break;
+            case ObjectType.ENEMY_GROW:
+                circleTransformRenderer.color = gameParameters.enemy2Fill;
+                break;
+            case ObjectType.ENEMY_DOUBLE:
+                circleTransformRenderer.color = gameParameters.enemy3Fill;
+                break;
+        }
+    }
 }

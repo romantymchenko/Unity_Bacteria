@@ -29,7 +29,7 @@ public class FieldFrameController : MonoBehaviour
         right.localScale = left.localScale;
 
         top.localPosition = Vector3.up * 5;
-        top.localScale = Vector3.one * 0.5f + Vector3.right * (viewportHalfWidth * 2 - 0.5f);
+        top.localScale = Vector3.one * 0.5f + Vector3.up * (viewportHalfWidth * 2 - 0.5f);
 
         bottom.localPosition = Vector3.down * 5;
         bottom.localScale = top.localScale;

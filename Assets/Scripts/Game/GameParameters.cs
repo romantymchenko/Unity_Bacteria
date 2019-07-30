@@ -21,6 +21,12 @@ public class GameParameters : ScriptableObject
     public Color growingColor;
     public float growingSpeed;
 
+    public Color friendFill;
+    public Color holeFill;
+    public Color enemy1Fill;
+    public Color enemy2Fill;
+    public Color enemy3Fill;
+
     public LevelConfig[] levels;
 }
 
