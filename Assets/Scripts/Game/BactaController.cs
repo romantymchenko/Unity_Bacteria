@@ -4,6 +4,18 @@ using UnityEngine;
 
 public class BactaController : MonoBehaviour
 {
+	public ObjectType PlayerType => playerType;
+
+    public int Health => (int)healthPoints;
+
+    public float Radius => circleOutlinerTransform.localScale.x / 2;
+
+    public Vector2 Direction;
+    public Vector2 NextFrameDirection;
+
+    [SerializeField]
+    public List<BactaController> OtherControllers = new List<BactaController>();
+
     [SerializeField]
     private GameParameters gameParameters;
 
@@ -24,7 +36,7 @@ public class BactaController : MonoBehaviour
     private TextMesh labelText;
 
     [SerializeField]
-    private Vector2 direction;
+    private float startAngle;
 
     [SerializeField]
     private float speed;
@@ -35,7 +47,7 @@ public class BactaController : MonoBehaviour
     [SerializeField]
     private bool isGrowing;
 
-    private Rigidbody2D rigidbody2D;
+    private Rigidbody2D core;
 
     public void StartTouchingPhase()
     {
@@ -52,59 +64,102 @@ public class BactaController : MonoBehaviour
     private void Awake()
     {
         circleTransformRenderer = circleTransform.GetComponent<SpriteRenderer>();
-        rigidbody2D = GetComponent<Rigidbody2D>();
-
+        core = GetComponent<Rigidbody2D>();
         ChangeSkin(playerType);
 
-    }
-
-    private void Start()
-    {
-        direction = Random.insideUnitCircle.normalized;
+        var angleInRad = Mathf.Deg2Rad * startAngle;
+        NextFrameDirection = new Vector2(Mathf.Cos(angleInRad), -Mathf.Sin(angleInRad));
         UpdateSize();
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        var otherType = collision.transform.parent.GetComponent<ObjectTypeStorage>().objectType;
-        if (otherType == ObjectType.WALL)
+        var otherController = collision.transform.parent.GetComponent<BactaController>();
+        
+        if (OtherControllers.IndexOf(otherController) == -1)
         {
-            direction = Vector2.Reflect(direction, collision.transform.right);
-            return;
+            var surfacePerpendicular = Vector2.Perpendicular(otherController.transform.position - transform.position);
+            NextFrameDirection = Vector2.Reflect(Direction, Vector2.Perpendicular(surfacePerpendicular).normalized).normalized;
+
+            //find how far angle from perperdicular impact
+            //var angle = Mathf.Abs(Vector2.Angle(Direction, otherController.Direction) - 90f);
+            //NextFrameDirection = Vector2.Lerp(NextFrameDirection, Direction + otherController.Direction + NextFrameDirection, angle / 90f).normalized;
         }
 
-        //get reflection using closest point
-        direction = Vector2.Reflect(direction, (new Vector2(transform.position.x, transform.position.y) - collision.ClosestPoint(transform.position)).normalized);
-
-        if (playerType == otherType) return;
+        if (playerType == otherController.PlayerType) return;
+        if (playerType == ObjectType.HOLE) return;
 
         if (playerType == ObjectType.FRIEND)
         {
-            switch(otherType)
+            switch (otherController.PlayerType)
             {
                 case ObjectType.HOLE:
                     if (isGrowing)
                     {
                         //friend(curr)->hole
                         StopGrowing();
-                        ChangeSkin(ObjectType.HOLE);
+                        ChangeSkin(otherController.PlayerType);
                     }
                     break;
                 case ObjectType.ENEMY_SIMPLE:
                 case ObjectType.ENEMY_GROW:
-
+                    if (isGrowing)
+                    {
+                        //friend(curr)->hole
+                        StopGrowing();
+                        ChangeSkin(otherController.PlayerType);
+                    }
+                    else
+                    {
+                        healthPoints -= otherController.Health / 3f;
+                        if (Health <= 0)
+                        {
+                            healthPoints = 10;
+                            ChangeSkin(otherController.PlayerType);
+                        }
+                    }
                     break;
                 case ObjectType.ENEMY_DOUBLE:
-
+                    if (isGrowing)
+                    {
+                        //friend(curr)->hole
+                        StopGrowing();
+                        ChangeSkin(otherController.PlayerType);
+                    }
+                    else
+                    {
+                        healthPoints -= otherController.Health / 3f * 2f;
+                        if (Health <= 0)
+                        {
+                            healthPoints = 10;
+                            ChangeSkin(otherController.PlayerType);
+                        }
+                    }
                     break;
             }
         }
+        else if (otherController.PlayerType == ObjectType.FRIEND)
+        {
+            //receive damage
+            healthPoints -= otherController.Health / 4f;
+            if (Health <= 0)
+            {
+                healthPoints = 10;
+                ChangeSkin(otherController.PlayerType);
+            }
+        }
+
+        UpdateSize();
+        OtherControllers.Add(collision.transform.parent.GetComponent<BactaController>());
+    }
+
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        OtherControllers.Remove(collision.transform.parent.GetComponent<BactaController>());
     }
 
     private void Update()
     {
-        HandleMovement();
-
         if (isGrowing)
         {
             healthPoints += Time.deltaTime * gameParameters.growingSpeed;
@@ -113,12 +168,20 @@ public class BactaController : MonoBehaviour
         }
     }
 
+    private void FixedUpdate()
+    {
+        HandleMovement();
+    }
+
     private void HandleMovement()
     {
-        var nextPosition = direction * Time.deltaTime * speed;
+        var nextPosition = NextFrameDirection * Time.deltaTime * speed;
         nextPosition.x += transform.position.x;
         nextPosition.y += transform.position.y;
-        rigidbody2D.MovePosition(nextPosition);
+        core.MovePosition(nextPosition);
+
+        //write to direction variable only after all collision triggers
+        Direction = NextFrameDirection;
     }
 
     private void StartGrow()
@@ -146,13 +209,12 @@ public class BactaController : MonoBehaviour
         circleOutlinerMaskTransform.localScale = circleTransform.localScale;
         circleOutlinerTransform.localScale = circleTransform.localScale + Vector3.one * 0.1f;
 
-        labelText.text = (int)healthPoints + "";
+        labelText.text = Health + "";
     }
 
     private void ChangeSkin(ObjectType objectType)
     {
         playerType = objectType;
-        GetComponent<ObjectTypeStorage>().objectType = objectType;
 
         switch(objectType)
         {
