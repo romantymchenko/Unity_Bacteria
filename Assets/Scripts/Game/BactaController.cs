@@ -12,6 +12,8 @@ public class BactaController : MonoBehaviour
 
     public Vector2 Direction;
 
+    public float StartAngle;
+
     [SerializeField]
     public List<BactaController> OtherControllers = new List<BactaController>();
 
@@ -33,9 +35,6 @@ public class BactaController : MonoBehaviour
 
     [SerializeField]
     private TextMesh labelText;
-
-    [SerializeField]
-    private float startAngle;
 
     [SerializeField]
     private float speed;
@@ -134,7 +133,7 @@ public class BactaController : MonoBehaviour
         core = GetComponent<Rigidbody2D>();
         ChangeSkin(playerType);
 
-        var angleInRad = Mathf.Deg2Rad * startAngle;
+        var angleInRad = Mathf.Deg2Rad * StartAngle;
         Direction = new Vector2(Mathf.Cos(angleInRad), -Mathf.Sin(angleInRad));
         UpdateSize();
     }
