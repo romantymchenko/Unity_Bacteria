@@ -1175,7 +1175,18 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 0}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1867882840}
+        m_MethodName: OnRetryClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
     m_TypeName: UnityEngine.UI.Button+ButtonClickedEvent, UnityEngine.UI, Version=1.0.0.0,
       Culture=neutral, PublicKeyToken=null
 --- !u!222 &1451085016
@@ -1589,10 +1600,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 520cb2efbb54741d595601e4ec7492a0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  levelPrefabs:
-  - {fileID: 2202541895198605364, guid: 543cef526e2a343b4990660443236c67, type: 3}
-  - {fileID: 2202541895198605364, guid: 543cef526e2a343b4990660443236c67, type: 3}
-  - {fileID: 2202541895198605364, guid: d96d1987450c34e9ebd4f383b3f2076d, type: 3}
+  gameParameters: {fileID: 11400000, guid: ba2e6e2078bcd4a48a8ce7a02d1bb41c, type: 2}
   activeLevel: {fileID: 0}
   raycastController: {fileID: 1867882839}
   introPopup: {fileID: 2138573731}
@@ -1759,7 +1767,18 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 0}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1867882840}
+        m_MethodName: OnNextClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
     m_TypeName: UnityEngine.UI.Button+ButtonClickedEvent, UnityEngine.UI, Version=1.0.0.0,
       Culture=neutral, PublicKeyToken=null
 --- !u!222 &2081863555

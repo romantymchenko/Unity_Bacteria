@@ -51,22 +51,54 @@ public class LevelController : MonoBehaviour
     {
         for (var i = 0; i < circlesOnStage.Length; i++)
         {
+            for (var j = i + 1; j < circlesOnStage.Length; j++)
+            {
+                if ((circlesOnStage[i].transform.position - circlesOnStage[j].transform.position).magnitude < circlesOnStage[i].Radius + circlesOnStage[j].Radius)
+                {
+                    if (circlesOnStage[i].OtherControllers.IndexOf(circlesOnStage[j]) == -1)
+                    {
+                        //claim as first collision
+                        var surfacePerpendicular = Vector2.Perpendicular(circlesOnStage[i].transform.position - circlesOnStage[j].transform.position);
+                        circlesOnStage[i].Direction = Vector2.Reflect(circlesOnStage[i].Direction, Vector2.Perpendicular(surfacePerpendicular).normalized).normalized;
+                        circlesOnStage[j].Direction = Vector2.Reflect(circlesOnStage[j].Direction, Vector2.Perpendicular(surfacePerpendicular).normalized).normalized;
+
+                        circlesOnStage[i].OtherControllers.Add(circlesOnStage[j]);
+                        circlesOnStage[j].OtherControllers.Add(circlesOnStage[i]);
+
+                        var health1 = circlesOnStage[i].Health;
+                        var health2 = circlesOnStage[j].Health;
+
+                        //always process enemy first
+                        if (circlesOnStage[i].PlayerType == ObjectType.FRIEND)
+                        {
+                            circlesOnStage[i].DoImpact(circlesOnStage[j].PlayerType, health2);
+                            circlesOnStage[j].DoImpact(circlesOnStage[i].PlayerType, health1);
+                        }
+                        else
+                        {
+                            circlesOnStage[j].DoImpact(circlesOnStage[i].PlayerType, health1);
+                            circlesOnStage[i].DoImpact(circlesOnStage[j].PlayerType, health2);
+                        }
+                    }
+                }
+            }
+
             //emulate wall hit
-            if (circlesOnStage[i].NextFrameDirection.x > 0 && circlesOnStage[i].transform.position.x + circlesOnStage[i].Radius >= viewportHalfWidth - .25f)
+            if (circlesOnStage[i].Direction.x > 0 && circlesOnStage[i].transform.position.x + circlesOnStage[i].Radius >= viewportHalfWidth - .25f)
             {
-                circlesOnStage[i].NextFrameDirection.x = -circlesOnStage[i].NextFrameDirection.x;
+                circlesOnStage[i].Direction.x = -circlesOnStage[i].Direction.x;
             }
-            if (circlesOnStage[i].NextFrameDirection.x < 0 && circlesOnStage[i].transform.position.x - circlesOnStage[i].Radius <= -viewportHalfWidth + .25f)
+            if (circlesOnStage[i].Direction.x < 0 && circlesOnStage[i].transform.position.x - circlesOnStage[i].Radius <= -viewportHalfWidth + .25f)
             {
-                circlesOnStage[i].NextFrameDirection.x = -circlesOnStage[i].NextFrameDirection.x;
+                circlesOnStage[i].Direction.x = -circlesOnStage[i].Direction.x;
             }
-            if (circlesOnStage[i].NextFrameDirection.y > 0 && circlesOnStage[i].transform.position.y + circlesOnStage[i].Radius >= 5f - .25f)
+            if (circlesOnStage[i].Direction.y > 0 && circlesOnStage[i].transform.position.y + circlesOnStage[i].Radius >= 5f - .25f)
             {
-                circlesOnStage[i].NextFrameDirection.y = -circlesOnStage[i].NextFrameDirection.y;
+                circlesOnStage[i].Direction.y = -circlesOnStage[i].Direction.y;
             }
-            if (circlesOnStage[i].NextFrameDirection.y < 0 && circlesOnStage[i].transform.position.y - circlesOnStage[i].Radius <= -5f + .25f)
+            if (circlesOnStage[i].Direction.y < 0 && circlesOnStage[i].transform.position.y - circlesOnStage[i].Radius <= -5f + .25f)
             {
-                circlesOnStage[i].NextFrameDirection.y = -circlesOnStage[i].NextFrameDirection.y;
+                circlesOnStage[i].Direction.y = -circlesOnStage[i].Direction.y;
             }
         }
     }
@@ -91,7 +123,7 @@ public class LevelController : MonoBehaviour
         //check lost first
         if (currentFriendsCount == 0)
         {
-            //OnLevelLost();
+            OnLevelLost();
         }
         else if (currentFriendsCount == circlesOnStage.Length && completedCirlesCount == currentFriendsCount)
         {

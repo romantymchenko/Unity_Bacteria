@@ -33,5 +33,5 @@ public class GameParameters : ScriptableObject
 [Serializable]
 public struct LevelConfig
 {
-
+    public GameObject prefab;
 }

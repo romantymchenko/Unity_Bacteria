@@ -28,4 +28,8 @@ MonoBehaviour:
   enemy1Fill: {r: 1, g: 0.18396229, b: 0.18396229, a: 1}
   enemy2Fill: {r: 0, g: 0.21964121, b: 1, a: 1}
   enemy3Fill: {r: 1, g: 0, b: 0.78961563, a: 1}
-  levels: []
+  levels:
+  - prefab: {fileID: 2202541895198605364, guid: d96d1987450c34e9ebd4f383b3f2076d,
+      type: 3}
+  - prefab: {fileID: 2202541895198605364, guid: 543cef526e2a343b4990660443236c67,
+      type: 3}

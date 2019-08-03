@@ -3,3 +3,4 @@ Library
 *.csproj
 obj
 *.sln
+Temp

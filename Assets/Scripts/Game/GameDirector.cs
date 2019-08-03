@@ -7,7 +7,7 @@ using UnityEngine.UI;
 public class GameDirector : MonoBehaviour
 {
     [SerializeField]
-    private GameObject[] levelPrefabs;
+    private GameParameters gameParameters;
 
     [SerializeField]
     private GameObject activeLevel;
@@ -35,8 +35,24 @@ public class GameDirector : MonoBehaviour
         SceneManager.LoadScene("MainMenu");
     }
 
+    public void OnRetryClick()
+    {
+        ChangePhase(GamePhase.DISPOSE);
+        ChangePhase(GamePhase.INTRO);
+    }
+
+    public void OnNextClick()
+    {
+        ChangePhase(GamePhase.DISPOSE);
+        PlayerProfile.Instance.LevelsPassed++;
+        //debug lock to run levels on circles
+        PlayerProfile.Instance.LevelsPassed = PlayerProfile.Instance.LevelsPassed % gameParameters.levels.Length;
+        ChangePhase(GamePhase.INTRO);
+    }
+
     private void Awake()
     {
+        Application.targetFrameRate = 60;
         ChangePhase(GamePhase.INTRO);
     }
 
@@ -64,7 +80,7 @@ public class GameDirector : MonoBehaviour
                 //setup interaction
                 raycastController.enabled = false;
                 //instantiate level prefab
-                activeLevel = Instantiate(levelPrefabs[0]);
+                activeLevel = Instantiate(gameParameters.levels[PlayerProfile.Instance.LevelsPassed].prefab);
                 //link to level-c callbacks
                 var c = activeLevel.GetComponent<LevelController>();
                 c.enabled = false;
@@ -91,7 +107,7 @@ public class GameDirector : MonoBehaviour
                 lostPopup.SetActive(true);
                 break;
             case GamePhase.DISPOSE:
-
+                Destroy(activeLevel);
                 break;
         }
 
