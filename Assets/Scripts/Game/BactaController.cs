@@ -8,14 +8,12 @@ public class BactaController : MonoBehaviour
 
     public int Health => (int)healthPoints;
 
-    public float Radius => circleOutlinerTransform.localScale.x / 2;
-
-    public Vector2 Direction;
-
-    public float StartAngle;
+    public LevelController LevelController = null;
 
     [SerializeField]
-    public List<BactaController> OtherControllers = new List<BactaController>();
+    private Vector2 direction;
+
+    public float StartAngle;
 
     [SerializeField]
     private GameParameters gameParameters;
@@ -134,13 +132,40 @@ public class BactaController : MonoBehaviour
         ChangeSkin(playerType);
 
         var angleInRad = Mathf.Deg2Rad * StartAngle;
-        Direction = new Vector2(Mathf.Cos(angleInRad), -Mathf.Sin(angleInRad));
+        direction = new Vector2(Mathf.Cos(angleInRad), -Mathf.Sin(angleInRad));
         UpdateSize();
     }
 
-    private void OnTriggerExit2D(Collider2D collision)
+    private void OnEnable()
     {
-        OtherControllers.Remove(collision.transform.parent.GetComponent<BactaController>());
+        core.velocity = direction * speed;
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.collider.gameObject.layer == 9)
+        {
+            direction = Vector2.Reflect(direction, collision.collider.transform.right);
+        }
+        else
+        {
+            var vectorToOtherBody = collision.collider.transform.position - collision.otherCollider.transform.position;
+            if (Vector2.Angle(direction, vectorToOtherBody) <= 90)
+            {
+                direction = Vector2.Reflect(
+                    direction,
+                    (collision.otherCollider.transform.position - collision.collider.transform.position).normalized
+                ).normalized;
+            }
+
+            LevelController.RegisterCollision(collision);
+        }
+    }
+
+    private void OnCollisionExit2D(Collision2D collision)
+    {
+        //apply velocity on released object
+        core.velocity = direction * speed;
     }
 
     private void Update()
@@ -153,18 +178,18 @@ public class BactaController : MonoBehaviour
         }
     }
 
-    private void FixedUpdate()
-    {
-        HandleMovement();
-    }
+    //private void FixedUpdate()
+    //{
+    //    HandleMovement();
+    //}
 
-    private void HandleMovement()
-    {
-        var nextPosition = Direction * Time.deltaTime * speed;
-        nextPosition.x += transform.position.x;
-        nextPosition.y += transform.position.y;
-        core.MovePosition(nextPosition);
-    }
+    //private void HandleMovement()
+    //{
+    //    var nextPosition = Direction * Time.deltaTime * speed;
+    //    nextPosition.x += transform.position.x;
+    //    nextPosition.y += transform.position.y;
+    //    core.MovePosition(nextPosition);
+    //}
 
     private void StartGrow()
     {
@@ -179,7 +204,7 @@ public class BactaController : MonoBehaviour
         if (!isGrowing) return;
 
         isGrowing = false;
-        circleTransformRenderer.color = Color.white;
+        circleTransformRenderer.color = gameParameters.friendFill;
     }
 
     private void UpdateSize()

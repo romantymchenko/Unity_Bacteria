@@ -21,6 +21,12 @@ public class GrowRaycastController : MonoBehaviour
         {
             screenPosition = Input.mousePosition;
         }
+#elif UNITY_WEBGL
+        isButtonPressed = Input.GetMouseButton(0);
+        if (isButtonPressed)
+        {
+            screenPosition = Input.mousePosition;
+        }
 #elif UNITY_IOS || UNITY_ANDROID
         isButtonPressed = Input.touchCount > 0;
         if (isButtonPressed)

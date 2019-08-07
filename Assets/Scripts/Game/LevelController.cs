@@ -14,13 +14,12 @@ public class LevelController : MonoBehaviour
     [SerializeField]
     private BactaController[] circlesOnStage;
 
-    private float viewportHalfWidth;
+    [SerializeField]
+    private List<Collision2D> frameCollisions = new List<Collision2D>();
 
-    private void Awake()
+    public void RegisterCollision(Collision2D collision)
     {
-        var aspect = (float)Screen.width / Screen.height;
-        viewportHalfWidth = 5 * aspect;
-
+        frameCollisions.Add(collision);
     }
 
     private void OnEnable()
@@ -28,6 +27,7 @@ public class LevelController : MonoBehaviour
         circlesOnStage = GetComponentsInChildren<BactaController>();
         for (var i = 0; i < circlesOnStage.Length; i++)
         {
+            circlesOnStage[i].LevelController = this;
             circlesOnStage[i].enabled = true;
         }
     }
@@ -43,62 +43,48 @@ public class LevelController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        HandleWallHit();
+        if (frameCollisions.Count > 0)
+        {
+            ProcessCollisions();
+        }
+
         DoCalculations();
+        frameCollisions.Clear();
     }
 
-    private void HandleWallHit()
+    private void ProcessCollisions()
     {
-        for (var i = 0; i < circlesOnStage.Length; i++)
+        while (frameCollisions.Count > 0)
         {
-            for (var j = i + 1; j < circlesOnStage.Length; j++)
+            var current = frameCollisions[0];
+            frameCollisions.RemoveAt(0);
+
+            //clean duplicate
+            for (var i = frameCollisions.Count - 1; i >= 0; i--)
             {
-                if ((circlesOnStage[i].transform.position - circlesOnStage[j].transform.position).magnitude < circlesOnStage[i].Radius + circlesOnStage[j].Radius)
+                if (frameCollisions[i].collider == current.otherCollider && frameCollisions[i].otherCollider == current.collider)
                 {
-                    if (circlesOnStage[i].OtherControllers.IndexOf(circlesOnStage[j]) == -1)
-                    {
-                        //claim as first collision
-                        var surfacePerpendicular = Vector2.Perpendicular(circlesOnStage[i].transform.position - circlesOnStage[j].transform.position);
-                        circlesOnStage[i].Direction = Vector2.Reflect(circlesOnStage[i].Direction, Vector2.Perpendicular(surfacePerpendicular).normalized).normalized;
-                        circlesOnStage[j].Direction = Vector2.Reflect(circlesOnStage[j].Direction, Vector2.Perpendicular(surfacePerpendicular).normalized).normalized;
-
-                        circlesOnStage[i].OtherControllers.Add(circlesOnStage[j]);
-                        circlesOnStage[j].OtherControllers.Add(circlesOnStage[i]);
-
-                        var health1 = circlesOnStage[i].Health;
-                        var health2 = circlesOnStage[j].Health;
-
-                        //always process enemy first
-                        if (circlesOnStage[i].PlayerType == ObjectType.FRIEND)
-                        {
-                            circlesOnStage[i].DoImpact(circlesOnStage[j].PlayerType, health2);
-                            circlesOnStage[j].DoImpact(circlesOnStage[i].PlayerType, health1);
-                        }
-                        else
-                        {
-                            circlesOnStage[j].DoImpact(circlesOnStage[i].PlayerType, health1);
-                            circlesOnStage[i].DoImpact(circlesOnStage[j].PlayerType, health2);
-                        }
-                    }
+                    frameCollisions.RemoveAt(i);
                 }
             }
 
-            //emulate wall hit
-            if (circlesOnStage[i].Direction.x > 0 && circlesOnStage[i].transform.position.x + circlesOnStage[i].Radius >= viewportHalfWidth - .25f)
+            //process collision
+            var controller1 = current.collider.transform.parent.GetComponent<BactaController>();
+            var controller2 = current.otherCollider.transform.parent.GetComponent<BactaController>();
+
+            var health1 = controller1.Health;
+            var health2 = controller2.Health;
+
+            //always process enemy first
+            if (controller1.PlayerType == ObjectType.FRIEND)
             {
-                circlesOnStage[i].Direction.x = -circlesOnStage[i].Direction.x;
+                controller1.DoImpact(controller2.PlayerType, health2);
+                controller2.DoImpact(controller1.PlayerType, health1);
             }
-            if (circlesOnStage[i].Direction.x < 0 && circlesOnStage[i].transform.position.x - circlesOnStage[i].Radius <= -viewportHalfWidth + .25f)
+            else
             {
-                circlesOnStage[i].Direction.x = -circlesOnStage[i].Direction.x;
-            }
-            if (circlesOnStage[i].Direction.y > 0 && circlesOnStage[i].transform.position.y + circlesOnStage[i].Radius >= 5f - .25f)
-            {
-                circlesOnStage[i].Direction.y = -circlesOnStage[i].Direction.y;
-            }
-            if (circlesOnStage[i].Direction.y < 0 && circlesOnStage[i].transform.position.y - circlesOnStage[i].Radius <= -5f + .25f)
-            {
-                circlesOnStage[i].Direction.y = -circlesOnStage[i].Direction.y;
+                controller2.DoImpact(controller1.PlayerType, health1);
+                controller1.DoImpact(controller2.PlayerType, health2);
             }
         }
     }
