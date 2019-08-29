@@ -1,8 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
-public class BactaController : MonoBehaviour
+public class BactaController : MonoBehaviour,
+    IPointerExitHandler,
+    IPointerDownHandler,
+    IPointerUpHandler
 {
 	public ObjectType PlayerType => playerType;
 
@@ -45,19 +49,128 @@ public class BactaController : MonoBehaviour
 
     private Rigidbody2D core;
 
-    public void StartTouchingPhase()
+    private void Awake()
+    {
+        circleTransformRenderer = circleTransform.GetComponent<SpriteRenderer>();
+        core = GetComponent<Rigidbody2D>();
+        ChangeSkin(playerType);
+
+        var angleInRad = Mathf.Deg2Rad * StartAngle;
+        direction = new Vector2(Mathf.Cos(angleInRad), -Mathf.Sin(angleInRad));
+        UpdateSize();
+    }
+
+    private void OnEnable()
+    {
+        core.velocity = direction * speed;
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.collider.gameObject.layer == 9)
+        {
+            direction = Vector2.Reflect(direction, collision.collider.transform.right);
+        }
+        else
+        {
+            var vectorToOtherBody = collision.collider.transform.position - collision.otherCollider.transform.position;
+            if (Vector2.Angle(direction, vectorToOtherBody) <= 90)
+            {
+                direction = Vector2.Reflect(
+                    direction,
+                    (collision.otherCollider.transform.position - collision.collider.transform.position).normalized
+                ).normalized;
+            }
+        }
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        StopGrowing();
+    }
+
+    public void OnPointerDown(PointerEventData eventData)
     {
         if (playerType != ObjectType.FRIEND) return;
 
         StartGrow();
     }
 
-    public void StopTouchingPhase()
-	{
+    public void OnPointerUp(PointerEventData eventData)
+    {
         StopGrowing();
     }
 
-    public void DoImpact(ObjectType otherType, int otherHealth)
+    private void OnCollisionExit2D(Collision2D collision)
+    {
+        //apply velocity on released object
+        core.velocity = direction * speed;
+    }
+
+    private void Update()
+    {
+        if (isGrowing)
+        {
+            healthPoints += Time.deltaTime * gameParameters.growingSpeed;
+            healthPoints = Mathf.Min(healthPoints, gameParameters.maxHPValue);
+            UpdateSize();
+        }
+    }
+
+    private void StartGrow()
+    {
+        if (isGrowing) return;
+
+        isGrowing = true;
+        circleTransformRenderer.color = gameParameters.growingColor;
+    }
+
+    private void StopGrowing()
+    {
+        if (!isGrowing) return;
+
+        isGrowing = false;
+        circleTransformRenderer.color = gameParameters.friendFill;
+    }
+
+    private void UpdateSize()
+    {
+        var hpCoeff = (healthPoints - gameParameters.minHPValue) / (gameParameters.maxHPValue - gameParameters.minHPValue);
+        var currDiameter = gameParameters.minHPDiameter + (gameParameters.maxHPDiameter - gameParameters.minHPDiameter) * hpCoeff;
+
+        circleTransform.localScale = Vector3.one * currDiameter;
+        circleOutlinerMaskTransform.localScale = circleTransform.localScale;
+        circleOutlinerTransform.localScale = circleTransform.localScale + Vector3.one * 0.1f;
+
+        labelText.text = Health + "";
+    }
+
+    private void ChangeSkin(ObjectType objectType)
+    {
+        playerType = objectType;
+
+        switch(objectType)
+        {
+            case ObjectType.FRIEND:
+                circleTransformRenderer.color = gameParameters.friendFill;
+                break;
+            case ObjectType.HOLE:
+                circleTransformRenderer.color = gameParameters.holeFill;
+                labelText.GetComponent<MeshRenderer>().enabled = false;
+                break;
+            case ObjectType.ENEMY_SIMPLE:
+                circleTransformRenderer.color = gameParameters.enemy1Fill;
+                break;
+            case ObjectType.ENEMY_GROW:
+                circleTransformRenderer.color = gameParameters.enemy2Fill;
+                break;
+            case ObjectType.ENEMY_DOUBLE:
+                circleTransformRenderer.color = gameParameters.enemy3Fill;
+                break;
+        }
+    }
+
+    private void DoImpact(ObjectType otherType, int otherHealth)
     {
         if (playerType == otherType) return;
         if (playerType == ObjectType.HOLE) return;
@@ -125,121 +238,4 @@ public class BactaController : MonoBehaviour
         UpdateSize();
     }
 
-    private void Awake()
-    {
-        circleTransformRenderer = circleTransform.GetComponent<SpriteRenderer>();
-        core = GetComponent<Rigidbody2D>();
-        ChangeSkin(playerType);
-
-        var angleInRad = Mathf.Deg2Rad * StartAngle;
-        direction = new Vector2(Mathf.Cos(angleInRad), -Mathf.Sin(angleInRad));
-        UpdateSize();
-    }
-
-    private void OnEnable()
-    {
-        core.velocity = direction * speed;
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.collider.gameObject.layer == 9)
-        {
-            direction = Vector2.Reflect(direction, collision.collider.transform.right);
-        }
-        else
-        {
-            var vectorToOtherBody = collision.collider.transform.position - collision.otherCollider.transform.position;
-            if (Vector2.Angle(direction, vectorToOtherBody) <= 90)
-            {
-                direction = Vector2.Reflect(
-                    direction,
-                    (collision.otherCollider.transform.position - collision.collider.transform.position).normalized
-                ).normalized;
-            }
-
-            LevelController.RegisterCollision(collision);
-        }
-    }
-
-    private void OnCollisionExit2D(Collision2D collision)
-    {
-        //apply velocity on released object
-        core.velocity = direction * speed;
-    }
-
-    private void Update()
-    {
-        if (isGrowing)
-        {
-            healthPoints += Time.deltaTime * gameParameters.growingSpeed;
-            healthPoints = Mathf.Min(healthPoints, gameParameters.maxHPValue);
-            UpdateSize();
-        }
-    }
-
-    //private void FixedUpdate()
-    //{
-    //    HandleMovement();
-    //}
-
-    //private void HandleMovement()
-    //{
-    //    var nextPosition = Direction * Time.deltaTime * speed;
-    //    nextPosition.x += transform.position.x;
-    //    nextPosition.y += transform.position.y;
-    //    core.MovePosition(nextPosition);
-    //}
-
-    private void StartGrow()
-    {
-        if (isGrowing) return;
-
-        isGrowing = true;
-        circleTransformRenderer.color = gameParameters.growingColor;
-    }
-
-    private void StopGrowing()
-    {
-        if (!isGrowing) return;
-
-        isGrowing = false;
-        circleTransformRenderer.color = gameParameters.friendFill;
-    }
-
-    private void UpdateSize()
-    {
-        var hpCoeff = (healthPoints - gameParameters.minHPValue) / (gameParameters.maxHPValue - gameParameters.minHPValue);
-        var currDiameter = gameParameters.minHPDiameter + (gameParameters.maxHPDiameter - gameParameters.minHPDiameter) * hpCoeff;
-
-        circleTransform.localScale = Vector3.one * currDiameter;
-        circleOutlinerMaskTransform.localScale = circleTransform.localScale;
-        circleOutlinerTransform.localScale = circleTransform.localScale + Vector3.one * 0.1f;
-
-        labelText.text = Health + "";
-    }
-
-    private void ChangeSkin(ObjectType objectType)
-    {
-        playerType = objectType;
-
-        switch(objectType)
-        {
-            case ObjectType.FRIEND:
-                circleTransformRenderer.color = gameParameters.friendFill;
-                break;
-            case ObjectType.HOLE:
-                circleTransformRenderer.color = gameParameters.holeFill;
-                break;
-            case ObjectType.ENEMY_SIMPLE:
-                circleTransformRenderer.color = gameParameters.enemy1Fill;
-                break;
-            case ObjectType.ENEMY_GROW:
-                circleTransformRenderer.color = gameParameters.enemy2Fill;
-                break;
-            case ObjectType.ENEMY_DOUBLE:
-                circleTransformRenderer.color = gameParameters.enemy3Fill;
-                break;
-        }
-    }
 }

@@ -42,5 +42,6 @@ public class PlayerProfile
         }
     }
 
-    public int LevelsPassed = 0;
+    public int currentLevel = 0;
+    public int levelsPassed = 0;
 }

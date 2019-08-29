@@ -24,7 +24,7 @@ public class MainMenuController : MonoBehaviour
         gameObject.SetActive(true);
         levelSelection.SetActive(false);
 
-        if (PlayerProfile.Instance.LevelsPassed > 0)
+        if (PlayerProfile.Instance.levelsPassed > 0)
         {
             //enable "continue" options
 

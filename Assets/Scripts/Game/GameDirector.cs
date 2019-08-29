@@ -13,9 +13,6 @@ public class GameDirector : MonoBehaviour
     private GameObject activeLevel;
 
     [SerializeField]
-    private GrowRaycastController raycastController;
-
-    [SerializeField]
     private GameObject introPopup;
 
     [SerializeField]
@@ -44,9 +41,8 @@ public class GameDirector : MonoBehaviour
     public void OnNextClick()
     {
         ChangePhase(GamePhase.DISPOSE);
-        PlayerProfile.Instance.LevelsPassed++;
         //debug lock to run levels on circles
-        PlayerProfile.Instance.LevelsPassed = PlayerProfile.Instance.LevelsPassed % gameParameters.levels.Length;
+        PlayerProfile.Instance.currentLevel = ++PlayerProfile.Instance.currentLevel % gameParameters.levels.Length;
         ChangePhase(GamePhase.INTRO);
     }
 
@@ -74,13 +70,12 @@ public class GameDirector : MonoBehaviour
             case GamePhase.INTRO:
                 //setup into UI
                 introPopup.SetActive(true);
-                levelNumberText.text = string.Format("Level {0}", 1);
+                levelNumberText.text = string.Format("Level {0}", PlayerProfile.Instance.currentLevel + 1);
                 winPopup.SetActive(false);
                 lostPopup.SetActive(false);
-                //setup interaction
-                raycastController.enabled = false;
                 //instantiate level prefab
-                activeLevel = Instantiate(gameParameters.levels[PlayerProfile.Instance.LevelsPassed].prefab);
+                var l = PlayerProfile.Instance.currentLevel % gameParameters.levels.Length;
+                activeLevel = Instantiate(gameParameters.levels[l].prefab);
                 //link to level-c callbacks
                 var c = activeLevel.GetComponent<LevelController>();
                 c.enabled = false;
@@ -89,19 +84,16 @@ public class GameDirector : MonoBehaviour
                 break;
             case GamePhase.GAME:
                 introPopup.SetActive(false);
-                raycastController.enabled = true;
                 activeLevel.GetComponent<LevelController>().enabled = true;
                 break;
             case GamePhase.WIN:
                 //stop level
-                raycastController.enabled = false;
                 activeLevel.GetComponent<LevelController>().enabled = false;
                 //setup UI
                 winPopup.SetActive(true);
                 break;
             case GamePhase.LOST:
                 //stop level
-                raycastController.enabled = false;
                 activeLevel.GetComponent<LevelController>().enabled = false;
                 //setup UI
                 lostPopup.SetActive(true);

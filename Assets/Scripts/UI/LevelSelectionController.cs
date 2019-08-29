@@ -20,6 +20,7 @@ public class LevelSelectionController : MonoBehaviour
 
     public void OnLevelSelect(int levelNumber)
     {
+        PlayerProfile.Instance.currentLevel = levelNumber;
         SceneManager.LoadScene("Game");
     }
 }
