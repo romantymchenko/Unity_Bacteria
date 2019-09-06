@@ -220,16 +220,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 351fddccc230547d2937ddb6a43d6906, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Direction: {x: 0, y: 0}
+  LevelController: {fileID: 0}
+  direction: {x: 0, y: 0}
   StartAngle: 0
-  OtherControllers: []
   gameParameters: {fileID: 11400000, guid: ba2e6e2078bcd4a48a8ce7a02d1bb41c, type: 2}
   playerType: 0
   circleTransform: {fileID: 1456744132520454314}
   circleOutlinerTransform: {fileID: 1456744133281317533}
   circleOutlinerMaskTransform: {fileID: 1456744133990306542}
   labelText: {fileID: 1456744132615473354}
-  speed: 5
+  speed: 4
   healthPoints: 10
   isGrowing: 0
 --- !u!50 &2045241008570455032

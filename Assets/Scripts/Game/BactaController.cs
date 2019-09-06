@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -12,7 +11,7 @@ public class BactaController : MonoBehaviour,
 
     public int Health => (int)healthPoints;
 
-    public LevelController LevelController = null;
+    public event Action OnTypeChanged;
 
     [SerializeField]
     private Vector2 direction;
@@ -31,6 +30,7 @@ public class BactaController : MonoBehaviour,
 
     [SerializeField]
     private Transform circleOutlinerTransform;
+    private SpriteRenderer circleOutlinerRenderer;
 
     [SerializeField]
     private Transform circleOutlinerMaskTransform;
@@ -52,6 +52,7 @@ public class BactaController : MonoBehaviour,
     private void Awake()
     {
         circleTransformRenderer = circleTransform.GetComponent<SpriteRenderer>();
+        circleOutlinerRenderer = circleOutlinerTransform.GetComponent<SpriteRenderer>();
         core = GetComponent<Rigidbody2D>();
         ChangeSkin(playerType);
 
@@ -81,6 +82,9 @@ public class BactaController : MonoBehaviour,
                     (collision.otherCollider.transform.position - collision.collider.transform.position).normalized
                 ).normalized;
             }
+
+            //register collision participant
+            TwoParticipantsCollisionSync.OnCollisionHappen(this, collision.gameObject.GetComponent<BactaController>());
         }
     }
 
@@ -103,26 +107,18 @@ public class BactaController : MonoBehaviour,
 
     private void OnCollisionExit2D(Collision2D collision)
     {
-        //apply velocity on released object
-        core.velocity = direction * speed;
-    }
-
-    private void Update()
-    {
-        if (isGrowing)
-        {
-            healthPoints += Time.deltaTime * gameParameters.growingSpeed;
-            healthPoints = Mathf.Min(healthPoints, gameParameters.maxHPValue);
-            UpdateSize();
-        }
-    }
+		//apply velocity on released object
+		core.velocity = direction * speed;
+	}
 
     private void StartGrow()
     {
         if (isGrowing) return;
 
         isGrowing = true;
-        circleTransformRenderer.color = gameParameters.growingColor;
+        circleOutlinerRenderer.color = gameParameters.growingColor;
+
+        InvokeRepeating("GrowingStep", 1 / gameParameters.growingSpeed, 1 / gameParameters.growingSpeed);
     }
 
     private void StopGrowing()
@@ -130,7 +126,16 @@ public class BactaController : MonoBehaviour,
         if (!isGrowing) return;
 
         isGrowing = false;
-        circleTransformRenderer.color = gameParameters.friendFill;
+        circleOutlinerRenderer.color = Color.black;
+
+        CancelInvoke("GrowingStep");
+    }
+
+    private void GrowingStep()
+    {
+        healthPoints += 1;
+        healthPoints = Mathf.Min(healthPoints, gameParameters.maxHPValue);
+        UpdateSize();
     }
 
     private void UpdateSize()
@@ -143,6 +148,11 @@ public class BactaController : MonoBehaviour,
         circleOutlinerTransform.localScale = circleTransform.localScale + Vector3.one * 0.1f;
 
         labelText.text = Health + "";
+
+        if (healthPoints >= gameParameters.maxHPValue)
+        {
+            OnTypeChanged?.Invoke();
+        }
     }
 
     private void ChangeSkin(ObjectType objectType)
@@ -168,74 +178,75 @@ public class BactaController : MonoBehaviour,
                 circleTransformRenderer.color = gameParameters.enemy3Fill;
                 break;
         }
+
+        OnTypeChanged?.Invoke();
     }
 
-    private void DoImpact(ObjectType otherType, int otherHealth)
+    public void DoImpact(ObjectType otherType, int otherHealth)
     {
-        if (playerType == otherType) return;
-        if (playerType == ObjectType.HOLE) return;
-
-        if (playerType == ObjectType.FRIEND)
+        if (playerType != otherType && playerType != ObjectType.HOLE)
         {
-            switch (otherType)
+            if (playerType == ObjectType.FRIEND)
             {
-                case ObjectType.HOLE:
-                    if (isGrowing)
-                    {
-                        //friend(curr)->hole
-                        StopGrowing();
-                        ChangeSkin(otherType);
-                    }
-                    break;
-                case ObjectType.ENEMY_SIMPLE:
-                case ObjectType.ENEMY_GROW:
-                    if (isGrowing)
-                    {
-                        //friend(curr)->hole
-                        StopGrowing();
-                        ChangeSkin(otherType);
-                    }
-                    else
-                    {
-                        healthPoints -= otherHealth / 3f;
-                        if (Health <= 0)
+                switch (otherType)
+                {
+                    case ObjectType.HOLE:
+                        if (isGrowing)
                         {
-                            healthPoints = 10;
+                            //friend(curr)->hole
+                            StopGrowing();
                             ChangeSkin(otherType);
                         }
-                    }
-                    break;
-                case ObjectType.ENEMY_DOUBLE:
-                    if (isGrowing)
-                    {
-                        //friend(curr)->hole
-                        StopGrowing();
-                        ChangeSkin(otherType);
-                    }
-                    else
-                    {
-                        healthPoints -= otherHealth / 3f * 2f;
-                        if (Health <= 0)
+                        break;
+                    case ObjectType.ENEMY_SIMPLE:
+                    case ObjectType.ENEMY_GROW:
+                        if (isGrowing)
                         {
-                            healthPoints = 10;
+                            //friend(curr)->hole
+                            StopGrowing();
                             ChangeSkin(otherType);
                         }
-                    }
-                    break;
+                        else
+                        {
+                            healthPoints -= otherHealth / 3f;
+                            if (Health <= 0)
+                            {
+                                healthPoints = 10;
+                                ChangeSkin(otherType);
+                            }
+                        }
+                        break;
+                    case ObjectType.ENEMY_DOUBLE:
+                        if (isGrowing)
+                        {
+                            //friend(curr)->hole
+                            StopGrowing();
+                            ChangeSkin(otherType);
+                        }
+                        else
+                        {
+                            healthPoints -= otherHealth / 3f * 2f;
+                            if (Health <= 0)
+                            {
+                                healthPoints = 10;
+                                ChangeSkin(otherType);
+                            }
+                        }
+                        break;
+                }
             }
-        }
-        else if (otherType == ObjectType.FRIEND)
-        {
-            //receive damage
-            healthPoints -= otherHealth / 4f;
-            if (Health <= 0)
+            else if (otherType == ObjectType.FRIEND)
             {
-                healthPoints = 10;
-                ChangeSkin(otherType);
+                //receive damage
+                healthPoints -= otherHealth / 4f;
+                if (Health <= 0)
+                {
+                    healthPoints = 10;
+                    ChangeSkin(otherType);
+                }
             }
-        }
 
-        UpdateSize();
+            UpdateSize();
+        }
     }
-
 }
